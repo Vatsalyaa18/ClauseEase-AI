@@ -1,8 +1,7 @@
 const API = "http://127.0.0.1:5000"; // backend
 
 let mode = "login";
-let theme = "dark"; // Default to dark as requested
-document.documentElement.setAttribute("data-theme", theme);
+let selectedLevel = "basic";
 
 // --- Elements ---
 const authOverlay = document.getElementById("authOverlay");
@@ -17,6 +16,7 @@ const appContainer = document.getElementById("appContainer");
 const docText = document.getElementById("docText");
 const fileUpload = document.getElementById("fileUpload");
 const analyzeBtn = document.getElementById("analyzeBtn");
+const simplifyBtn = document.getElementById("simplifyBtn");
 const analysisResults = document.getElementById("analysisResults");
 const emptyResult = document.getElementById("emptyResult");
 const highlightContainer = document.getElementById("highlightedText");
@@ -39,12 +39,22 @@ const gaugeFill = document.getElementById("gaugeFill");
 const complexityPercentage = document.getElementById("complexityPercentage");
 const downloadPdfBtn = document.getElementById("downloadPdfBtn");
 
+let theme = localStorage.getItem("theme") || "dark";
+document.documentElement.setAttribute("data-theme", theme);
 let currentUser = JSON.parse(localStorage.getItem("clauseEaseUser")) || null;
 
 if (currentUser) {
   userNameDisplay.textContent = currentUser.name;
   publicNav.classList.add("hide");
   privateNav.classList.remove("hide");
+
+  // show admin button if admin
+  if (currentUser.role === "admin") {
+    const adminBtn = document.getElementById("adminBtn");
+    if (adminBtn) adminBtn.classList.remove("hide");
+  }
+
+  loadMyReports();
 }
 
 // --- Helper Functions ---
@@ -62,12 +72,16 @@ function showAuth(targetMode) {
     submitBtn.textContent = "Login";
     nameBox.classList.add("hide");
     document.getElementById("switchText").innerHTML = 'Don\'t have an account? <span id="switchBtn">Register</span>';
+    const adminBox = document.getElementById("adminCodeBox");
+    if (adminBox) adminBox.classList.add("hide");
   } else {
     authTitle.textContent = "Register";
     authSub.textContent = "Create a new account.";
     submitBtn.textContent = "Create Account";
     nameBox.classList.remove("hide");
     document.getElementById("switchText").innerHTML = 'Already have an account? <span id="switchBtn">Login</span>';
+    const adminBox = document.getElementById("adminCodeBox");
+    if (adminBox) adminBox.classList.remove("hide");
   }
   // Re-attach switchBtn listener
   document.getElementById("switchBtn").addEventListener("click", () => {
@@ -103,6 +117,22 @@ document.querySelectorAll(".tab-btn:not([data-subtab])").forEach(btn => {
   });
 });
 
+// Simplification Level Buttons
+document.querySelectorAll(".level-btn").forEach(btn => {
+
+  btn.addEventListener("click", () => {
+
+    document.querySelectorAll(".level-btn")
+      .forEach(b => b.classList.remove("active"));
+
+    btn.classList.add("active");
+
+    selectedLevel = btn.dataset.level;
+
+  });
+
+});
+
 // Sub-tab Switching for Preprocessing
 document.querySelectorAll("[data-subtab]").forEach(btn => {
   btn.addEventListener("click", () => {
@@ -130,14 +160,197 @@ docText.addEventListener("input", () => {
 
 // File Upload Display
 fileUpload.addEventListener("change", () => {
-  const display = document.getElementById("fileNameDisplay");
+
+  const placeholder = document.getElementById("dropPlaceholder");
+  const fileBox = document.getElementById("selectedFile");
+  const fileName = document.getElementById("selectedFileName");
+
   if (fileUpload.files.length > 0) {
-    display.textContent = `📄 ${fileUpload.files[0].name}`;
-    display.classList.remove("hide");
-  } else {
-    display.classList.add("hide");
+
+    const file = fileUpload.files[0];
+    fileName.textContent = "📄 " + file.name;
+
+    placeholder.classList.add("hide");
+    fileBox.classList.remove("hide");
+
   }
 });
+
+fileUpload.addEventListener("click", (e) => {
+  e.stopPropagation();
+});
+// Allow clicking the drop zone to open file picker
+const dropZone = document.getElementById("dropZone");
+
+dropZone.addEventListener("click", (e) => {
+
+  // prevent double trigger
+  e.stopPropagation();
+
+  // if clicking replace button
+  if (e.target.id === "replaceFileBtn") {
+      fileUpload.value = "";
+      fileUpload.click();
+      return;
+  }
+
+  // open picker when clicking anywhere else in drop zone
+  if (!e.target.closest("#replaceFileBtn")) {
+      fileUpload.click();
+  }
+
+});
+
+dropZone.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  dropZone.classList.add("dragover");
+});
+
+dropZone.addEventListener("dragleave", () => {
+  dropZone.classList.remove("dragover");
+});
+
+dropZone.addEventListener("drop", (e) => {
+
+  e.preventDefault();
+  dropZone.classList.remove("dragover");
+
+  const files = e.dataTransfer.files;
+
+  if(files.length > 0){
+
+    fileUpload.files = files;
+
+    const placeholder = document.getElementById("dropPlaceholder");
+    const fileBox = document.getElementById("selectedFile");
+    const fileName = document.getElementById("selectedFileName");
+
+    fileName.textContent = "📄 " + files[0].name;
+
+    placeholder.classList.add("hide");
+    fileBox.classList.remove("hide");
+
+    analyzeBtn.click();
+  }
+
+});
+
+
+// Analysis Logic
+analyzeBtn.addEventListener("click", async () => {
+  const text = docText.value.trim();
+  const file = fileUpload.files[0];
+
+  if (!text && !file) {
+    alert("Please paste text or upload a file first.");
+    return;
+  }
+
+  analyzeBtn.disabled = true;
+  analyzeBtn.innerHTML = '<span class="btn-icon">⌛</span> Analyzing...';
+  analysisStatus.textContent = "Analyzing...";
+  document.querySelector(".status-dot").style.background = "var(--color-normal)";
+
+  try {
+    let res;
+    if (file && !document.getElementById("uploadTab").classList.contains("hide")) {
+      const formData = new FormData();
+      formData.append("file", file);
+      res = await fetch(`${API}/api/analyze`, {
+        method: "POST",
+        body: formData,
+        headers: currentUser ? { "X-User-Email": currentUser.email } : {}
+      });
+
+    } else {
+      res = await fetch(`${API}/api/analyze`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-User-Email": currentUser ? currentUser.email : ""
+        },
+        body: JSON.stringify({ text })
+      });
+    }
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Analysis failed");
+
+    // Display Results
+    document.getElementById("fkGrade").textContent = data.readability.flesch_kincaid_grade.toFixed(1);
+    document.getElementById("gfIndex").textContent = data.readability.gunning_fog.toFixed(1);
+    document.getElementById("complexityLabel").textContent = data.complexity_label.split(" ")[0];
+
+    // Update Gauge
+    const fk = data.readability.flesch_reading_ease;
+    // Flesch is 100 (simple) to 0 (complex). We want 0-100 complexity risk.
+    const risk = Math.max(0, Math.min(100, 100 - fk));
+    const rotation = (risk / 100) * 0.5; // 0.5 turns = 180deg
+    gaugeFill.style.transform = `rotate(${0.5 + rotation}turn)`;
+    complexityPercentage.textContent = `${Math.round(risk)}%`;
+
+    // Store current analysis for PDF
+    window.currentAnalysis = {
+      text: data.original_text,
+      simplified: document.getElementById("simplifiedTextDisplay")?.textContent || "",
+      summary: document.getElementById("summaryDisplay")?.textContent || "",
+      flesch: data.readability.flesch_reading_ease.toFixed(1),
+      fog: data.readability.gunning_fog.toFixed(1)
+    };
+
+    // Highlights (safe check)
+    if (highlightContainer && data.word_analysis) {
+      highlightContainer.innerHTML = "";
+
+      data.word_analysis.forEach(word => {
+        const span = document.createElement("span");
+        span.textContent = word.text + " ";
+        if (word.complexity !== "none") {
+          span.className = `word-${word.complexity}`;
+        }
+        highlightContainer.appendChild(span);
+      });
+    }
+
+    // Preprocessing Displays
+    document.getElementById("cleanedTextOutput").textContent = data.cleaned_text;
+    const sentenceList = document.getElementById("sentenceList");
+    sentenceList.innerHTML = "";
+    if (data.sentence_tokens) {
+      data.sentence_tokens.forEach(sent => {
+        const div = document.createElement("div");
+        div.textContent = sent;
+        sentenceList.appendChild(div);
+      });
+    }
+
+    const wordList = document.getElementById("wordList");
+    wordList.innerHTML = "";
+    if (data.word_tokens) {
+      data.word_tokens.forEach(word => {
+        const span = document.createElement("span");
+        span.textContent = word;
+        wordList.appendChild(span);
+      });
+    }
+
+    // Toggle View
+    emptyResult.classList.add("hide");
+    analysisResults.classList.remove("hide");
+    document.querySelector(".analysis-section").classList.remove("hide");
+    analysisStatus.textContent = "Complete";
+    document.querySelector(".status-dot").style.background = "var(--primary)";
+
+  } catch (err) {
+    alert("❌ Error: " + err.message);
+    analysisStatus.textContent = "Error";
+    document.querySelector(".status-dot").style.background = "var(--color-complex)";
+  } finally {
+    analyzeBtn.disabled = false;
+    analyzeBtn.innerHTML = '<span class="btn-icon">⚡</span> Analyze';
+  }
+});
+
 
 // Auth Logic
 submitBtn.addEventListener("click", async () => {
@@ -157,7 +370,7 @@ submitBtn.addEventListener("click", async () => {
       const res = await fetch(`${API}/api/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password })
+        body: JSON.stringify({ name, email, password, admin_code: document.getElementById("adminCode")?.value || ""})
       });
       const data = await res.json();
       if (!res.ok) return setMessage(data.message || "Register failed", false);
@@ -186,12 +399,31 @@ submitBtn.addEventListener("click", async () => {
       publicNav.classList.add("hide");
       privateNav.classList.remove("hide");
       setMessage("");
+      
+      // show dashboard
+      heroSection.classList.add("hide");
+      appContainer.classList.remove("hide");
+      // show admin button if admin
+      if (currentUser.role === "admin") {
+        const adminBtn = document.getElementById("adminBtn");
+        if (adminBtn) adminBtn.classList.remove("hide");
+      }
+
+      loadMyReports();
     }, 800);
 
   } catch (err) {
     setMessage("❌ Backend connection error", false);
   }
 });
+
+const adminBtn = document.getElementById("adminBtn");
+
+if (adminBtn) {
+  adminBtn.addEventListener("click", () => {
+    window.location.href = "admindash/admin.html";
+  });
+}
 
 // Logout
 document.getElementById("logoutBtn").addEventListener("click", () => {
@@ -245,148 +477,430 @@ userNameDisplay.addEventListener("click", async () => {
   }
 });
 
-closeHistory.onclick = () => historyOverlay.classList.add("hide");
+if (closeHistory && historyOverlay) {
+  closeHistory.onclick = () => historyOverlay.classList.add("hide");
+}
 
-// Analysis Logic
-analyzeBtn.addEventListener("click", async () => {
+
+
+// Theme Toggle (Simplified)
+const toggleBtn = document.getElementById("themeToggle");
+
+toggleBtn.textContent = theme === "dark" ? "☀️" : "🌙";
+document.getElementById("themeToggle").addEventListener("click", () => {
+
+  theme = theme === "dark" ? "light" : "dark";
+
+  document.documentElement.setAttribute("data-theme", theme);
+
+  localStorage.setItem("theme", theme);
+
+});
+
+// PDF Export (Secure per-user)
+downloadPdfBtn.addEventListener("click", async () => {
+  if (!window.currentAnalysis || !currentUser) {
+    alert("Please login first.");
+    return;
+  }
+
+  downloadPdfBtn.disabled = true;
+  downloadPdfBtn.innerHTML = "Generating...";
+
+  try {
+    // Step 1: Save PDF in backend
+    const saveRes = await fetch(`${API}/api/export-pdf`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-User-Email": currentUser.email
+      },
+      body: JSON.stringify({
+      ...window.currentAnalysis,
+      simplified: window.currentSimplifiedData?.simplified || "",
+      summary: window.currentSimplifiedData?.summary || ""
+    })
+    });
+
+    const saveData = await saveRes.json();
+    console.log("SAVE RESPONSE:", saveData);
+
+    if (!saveRes.ok) {
+      alert(saveData.message);
+      return;
+    }
+
+    await loadMyReports(); 
+
+    // Step 2: Securely download
+    const downloadRes = await fetch(
+      `${API}/api/download-report/${saveData.report_id}`,
+      {
+        headers: {
+          "X-User-Email": currentUser.email
+        }
+      }
+    );
+
+    if (!downloadRes.ok) {
+      alert("Download failed.");
+      return;
+    }
+
+    const blob = await downloadRes.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ClauseEase_Report.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    window.URL.revokeObjectURL(url);
+
+  } catch (err) {
+    alert("Export failed.");
+  } finally {
+    downloadPdfBtn.disabled = false;
+    downloadPdfBtn.innerHTML = '<span class="btn-icon">📄</span> Download Analysis (PDF)';
+  }
+});
+
+async function loadMyReports() {
+  if (!currentUser) return;
+
+  try {
+    const res = await fetch(`${API}/api/my-reports`, {
+      headers: {
+        "X-User-Email": currentUser.email
+      }
+    });
+
+    const reports = await res.json();
+
+    const container = document.getElementById("myReportsList");
+    container.innerHTML = "";
+
+    if (reports.length === 0) {
+      container.innerHTML = "<p>No reports yet.</p>";
+      return;
+    }
+
+    reports.forEach(report => {
+      const div = document.createElement("div");
+      div.className = "report-item";
+
+      div.innerHTML = `
+        <div class="report-card">
+          <div class="report-file">
+            <span class="file-icon">📄</span>
+            <div class="file-info">
+              <strong>${report.filename}</strong>
+              <small>${new Date(report.created_at).toLocaleString()}</small>
+            </div>
+          </div>
+
+          <button class="download-btn" data-id="${report.id}">
+            ⬇ Download
+          </button>
+        </div>
+      `;
+
+      container.appendChild(div);
+    });
+
+  } catch (err) {
+    console.error("Failed to load reports");
+  }
+}
+
+// ================= SIMPLIFY LOGIC =================
+simplifyBtn.addEventListener("click", async () => {
   const text = docText.value.trim();
   const file = fileUpload.files[0];
+  const level = selectedLevel; // "basic", "intermediate", "advanced"
 
   if (!text && !file) {
     alert("Please paste text or upload a file first.");
     return;
   }
 
-  analyzeBtn.disabled = true;
-  analyzeBtn.innerHTML = '<span class="btn-icon">⌛</span> Analyzing...';
-  analysisStatus.textContent = "Analyzing...";
-  document.querySelector(".status-dot").style.background = "var(--color-normal)";
+  simplifyBtn.disabled = true;
+  simplifyBtn.innerHTML = "Simplifying...";
 
   try {
     let res;
+
     if (file && !document.getElementById("uploadTab").classList.contains("hide")) {
+
       const formData = new FormData();
       formData.append("file", file);
-      res = await fetch(`${API}/api/analyze`, {
+      formData.append("level", level);
+
+      res = await fetch(`${API}/api/simplify`, {
         method: "POST",
-        body: formData,
-        headers: currentUser ? { "X-User-Email": currentUser.email } : {}
+        body: formData
       });
+
     } else {
-      res = await fetch(`${API}/api/analyze`, {
+
+      res = await fetch(`${API}/api/simplify`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "X-User-Email": currentUser ? currentUser.email : ""
-        },
-        body: JSON.stringify({ text })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, level })
       });
+
     }
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "Analysis failed");
+    if (!res.ok) throw new Error(data.message);
 
-    // Display Results
-    document.getElementById("fkGrade").textContent = data.readability.flesch_kincaid_grade.toFixed(1);
-    document.getElementById("gfIndex").textContent = data.readability.gunning_fog.toFixed(1);
-    document.getElementById("complexityLabel").textContent = data.complexity_label.split(" ")[0];
+    // Show side-by-side results
+    document.getElementById("originalTextDisplay").textContent = data.original_text;
+    document.getElementById("simplifiedTextDisplay").textContent = data.simplified_text;
+    document.getElementById("summaryDisplay").textContent = data.summary;
 
-    // Update Gauge
-    const fk = data.readability.flesch_reading_ease;
-    // Flesch is 100 (simple) to 0 (complex). We want 0-100 complexity risk.
-    const risk = Math.max(0, Math.min(100, 100 - fk));
-    const rotation = (risk / 100) * 0.5; // 0.5 turns = 180deg
-    gaugeFill.style.transform = `rotate(${0.5 + rotation}turn)`;
-    complexityPercentage.textContent = `${Math.round(risk)}%`;
+    const termsDiv = document.getElementById("termsDisplay");
+    termsDiv.innerHTML = "";
 
-    // Store current analysis for PDF
-    window.currentAnalysis = {
-      text: data.original_text,
-      flesch: data.readability.flesch_reading_ease.toFixed(1),
-      fog: data.readability.gunning_fog.toFixed(1)
+    if (data.legal_terms && Object.keys(data.legal_terms).length > 0) {
+
+      Object.entries(data.legal_terms).forEach(([term, meaning]) => {
+
+        const termCard = document.createElement("div");
+
+        termCard.className = "legal-term-card";
+
+        termCard.innerHTML = `
+          <strong>${term}</strong>
+          <p>${meaning}</p>
+        `;
+
+        termsDiv.appendChild(termCard);
+
+      });
+
+      document.getElementById("legalTermsSection").classList.remove("hide");
+
+    }
+    // Store simplified result globally for PDF export
+    window.currentSimplifiedData = {
+      simplified: data.simplified_text,
+      summary: data.summary
     };
 
-    // Highlights
-    highlightContainer.innerHTML = "";
-    if (data.word_analysis) {
-      data.word_analysis.forEach(word => {
-        const span = document.createElement("span");
-        span.textContent = word.text + " ";
-        if (word.complexity !== "none") span.className = `word-${word.complexity}`;
-        highlightContainer.appendChild(span);
-      });
-    }
-
-    // Preprocessing Displays
-    document.getElementById("cleanedTextOutput").textContent = data.cleaned_text;
-    const sentenceList = document.getElementById("sentenceList");
-    sentenceList.innerHTML = "";
-    if (data.sentence_tokens) {
-      data.sentence_tokens.forEach(sent => {
-        const div = document.createElement("div");
-        div.textContent = sent;
-        sentenceList.appendChild(div);
-      });
-    }
-
-    const wordList = document.getElementById("wordList");
-    wordList.innerHTML = "";
-    if (data.word_tokens) {
-      data.word_tokens.forEach(word => {
-        const span = document.createElement("span");
-        span.textContent = word;
-        wordList.appendChild(span);
-      });
-    }
-
-    // Toggle View
-    emptyResult.classList.add("hide");
-    analysisResults.classList.remove("hide");
-    document.querySelector(".analysis-section").classList.remove("hide");
-    analysisStatus.textContent = "Complete";
-    document.querySelector(".status-dot").style.background = "var(--primary)";
+    document.getElementById("simplifyResults").classList.remove("hide");
+    document.getElementById("summaryBox").classList.remove("hide");
 
   } catch (err) {
-    alert("❌ Error: " + err.message);
-    analysisStatus.textContent = "Error";
-    document.querySelector(".status-dot").style.background = "var(--color-complex)";
+    alert("Simplification failed: " + err.message);
   } finally {
-    analyzeBtn.disabled = false;
-    analyzeBtn.innerHTML = '<span class="btn-icon">⚡</span> Analyze';
+    simplifyBtn.disabled = false;
+    simplifyBtn.innerHTML = '<span class="btn-icon">✨</span> Simplify';
   }
 });
 
-// Theme Toggle (Simplified)
-document.getElementById("themeToggle").addEventListener("click", () => {
-  theme = theme === "dark" ? "light" : "dark";
-  document.documentElement.setAttribute("data-theme", theme);
-  document.getElementById("themeToggle").textContent = theme === "dark" ? "☀️" : "🌓";
-});
-
-// PDF Export
+// PDF Export (Secure per-user)
 downloadPdfBtn.addEventListener("click", async () => {
-  if (!window.currentAnalysis) return;
+  if (!window.currentAnalysis || !currentUser) {
+    alert("Please login first.");
+    return;
+  }
 
   downloadPdfBtn.disabled = true;
   downloadPdfBtn.innerHTML = "Generating...";
 
   try {
-    const res = await fetch(`${API}/api/export-pdf`, {
+    // Step 1: Save PDF in backend
+    const saveRes = await fetch(`${API}/api/export-pdf`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(window.currentAnalysis)
+      headers: {
+        "Content-Type": "application/json",
+        "X-User-Email": currentUser.email
+      },
+      body: JSON.stringify({
+      ...window.currentAnalysis,
+      simplified: window.currentSimplifiedData?.simplified || "",
+      summary: window.currentSimplifiedData?.summary || ""
+    })
     });
-    const data = await res.json();
-    if (res.ok) {
-      alert("Analysis Report Generated! Opening in new tab...");
-      window.open(`${API}/uploads/${data.filename}`, "_blank");
-    } else {
-      alert("Export failed: " + data.message);
+
+    const saveData = await saveRes.json();
+    console.log("SAVE RESPONSE:", saveData);
+
+    if (!saveRes.ok) {
+      alert(saveData.message);
+      return;
     }
+
+    await loadMyReports(); 
+
+    // Step 2: Securely download
+    const downloadRes = await fetch(
+      `${API}/api/download-report/${saveData.report_id}`,
+      {
+        headers: {
+          "X-User-Email": currentUser.email
+        }
+      }
+    );
+
+    if (!downloadRes.ok) {
+      alert("Download failed.");
+      return;
+    }
+
+    const blob = await downloadRes.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ClauseEase_Report.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    window.URL.revokeObjectURL(url);
+
   } catch (err) {
-    alert("Export error occurred.");
+    alert("Export failed.");
   } finally {
     downloadPdfBtn.disabled = false;
     downloadPdfBtn.innerHTML = '<span class="btn-icon">📄</span> Download Analysis (PDF)';
+  }
+});
+
+async function loadMyReports() {
+  if (!currentUser) return;
+
+  try {
+    const res = await fetch(`${API}/api/my-reports`, {
+      headers: {
+        "X-User-Email": currentUser.email
+      }
+    });
+
+    const reports = await res.json();
+
+    const container = document.getElementById("myReportsList");
+    container.innerHTML = "";
+
+    if (reports.length === 0) {
+      container.innerHTML = "<p>No reports yet.</p>";
+      return;
+    }
+
+    reports.forEach(report => {
+      const div = document.createElement("div");
+      div.className = "report-item";
+
+      div.innerHTML = `
+        <div class="report-card">
+          <div class="report-file">
+            <span class="file-icon">📄</span>
+            <div class="file-info">
+              <strong>${report.filename}</strong>
+              <small>${new Date(report.created_at).toLocaleString()}</small>
+            </div>
+          </div>
+
+          <button class="download-btn" data-id="${report.id}">
+            ⬇ Download
+          </button>
+        </div>
+      `;
+
+      container.appendChild(div);
+    });
+
+  } catch (err) {
+    console.error("Failed to load reports");
+  }
+}
+
+// ================= SIMPLIFY LOGIC =================
+simplifyBtn.addEventListener("click", async () => {
+  const text = docText.value.trim();
+  const file = fileUpload.files[0];
+  const level = selectedLevel; // "basic", "intermediate", "advanced"
+
+  if (!text && !file) {
+    alert("Please paste text or upload a file first.");
+    return;
+  }
+
+  simplifyBtn.disabled = true;
+  simplifyBtn.innerHTML = "Simplifying...";
+
+  try {
+    let res;
+
+    if (file && !document.getElementById("uploadTab").classList.contains("hide")) {
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("level", level);
+
+      res = await fetch(`${API}/api/simplify`, {
+        method: "POST",
+        body: formData
+      });
+
+    } else {
+
+      res = await fetch(`${API}/api/simplify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, level })
+      });
+
+    }
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message);
+
+    // Show side-by-side results
+    document.getElementById("originalTextDisplay").textContent = data.original_text;
+    document.getElementById("simplifiedTextDisplay").textContent = data.simplified_text;
+    document.getElementById("summaryDisplay").textContent = data.summary;
+
+    const termsDiv = document.getElementById("termsDisplay");
+    termsDiv.innerHTML = "";
+
+    if (data.legal_terms && Object.keys(data.legal_terms).length > 0) {
+
+      Object.entries(data.legal_terms).forEach(([term, meaning]) => {
+
+        const termCard = document.createElement("div");
+
+        termCard.className = "legal-term-card";
+
+        termCard.innerHTML = `
+          <strong>${term}</strong>
+          <p>${meaning}</p>
+        `;
+
+        termsDiv.appendChild(termCard);
+
+      });
+
+      document.getElementById("legalTermsSection").classList.remove("hide");
+
+    }
+    // Store simplified result globally for PDF export
+    window.currentSimplifiedData = {
+      simplified: data.simplified_text,
+      summary: data.summary
+    };
+
+    document.getElementById("simplifyResults").classList.remove("hide");
+    document.getElementById("summaryBox").classList.remove("hide");
+
+  } catch (err) {
+    alert("Simplification failed: " + err.message);
+  } finally {
+    simplifyBtn.disabled = false;
+    simplifyBtn.innerHTML = '<span class="btn-icon">✨</span> Simplify';
   }
 });

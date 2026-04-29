@@ -22,13 +22,13 @@
   <!-- Top Navigation Header -->
   <header class="app-header">
     <div class="header-container">
-      <div class="logo">
+      <a href="index.html" class="logo">
         <span class="logo-icon">📜</span>
         <div class="logo-text">
           <span class="brand-name">ClauseEase</span>
           <span class="brand-tagline">Contract Simplifier</span>
         </div>
-      </div>
+      </a>
 
       <nav class="auth-nav" id="publicNav">
         <button id="headerLoginBtn" class="btn-text">Login</button>
@@ -38,8 +38,17 @@
       <div class="user-nav hide" id="privateNav">
         <button id="themeToggle" class="theme-toggle">🌓</button>
         <div class="user-profile">
+
           <span id="userName">User</span>
-          <button id="logoutBtn" class="btn-outline">Logout</button>
+
+          <button id="adminBtn" class="btn-outline hide">
+          Admin
+          </button>
+
+          <button id="logoutBtn" class="btn-outline">
+          Logout
+          </button>
+
         </div>
       </div>
     </div>
@@ -68,6 +77,11 @@
           <div class="input-group">
             <label for="password">Password</label>
             <input type="password" id="password" placeholder="Enter password" />
+          </div>
+          
+          <div class="input-group hide" id="adminCodeBox">
+            <label>Admin Code (optional)</label>
+            <input type="text" id="adminCode" placeholder="Enter admin code if you have one">
           </div>
 
           <button id="submitBtn" class="btn-filled w-100">Login</button>
@@ -110,16 +124,42 @@
 
         <div class="tab-content hide" id="uploadTab">
           <div class="drop-zone" id="dropZone">
-            <span class="drop-icon">📁</span>
-            <p>Drop PDF or TXT here</p>
-            <span class="drop-sub">Max size: 10MB</span>
-            <input type="file" id="fileUpload" accept=".txt,.pdf" class="file-input" />
+
+            <div id="dropPlaceholder">
+              <span class="drop-icon">📁</span>
+              <p>Drop PDF or TXT here</p>
+              <span class="drop-sub">Max size: 10MB</span>
+            </div>
+
+            <div id="selectedFile" class="hide">
+              <p id="selectedFileName"></p>
+              <button id="replaceFileBtn" class="mini-btn">Replace File</button>
+            </div>
+
+            <input type="file" id="fileUpload" accept=".txt,.pdf" class="file-input"/>
+
           </div>
-          <div id="fileNameDisplay" class="file-name-pill hide"></div>
         </div>
 
         <button id="analyzeBtn" class="btn-filled primary-btn">
           <span class="btn-icon">⚡</span> Analyze
+        </button>
+
+        <!-- Simplification Level Selector -->
+        <div class="simplify-level-section">
+
+          <div class="simplify-title">
+            Simplification Level
+          </div>
+
+          <div class="simplify-levels">
+            <button class="level-btn active" data-level="basic">Basic</button>
+            <button class="level-btn" data-level="intermediate">Intermediate</button>
+            <button class="level-btn" data-level="advanced">Advanced</button>
+          </div>
+        </div>
+        <button id="simplifyBtn" class="btn-outline primary-btn">
+          <span class="btn-icon">✨</span> Simplify
         </button>
       </section>
 
@@ -195,9 +235,96 @@
                   <div id="wordList" class="token-list chips"></div>
                 </div>
               </div>
+            </div> 
+            <div id="simplifyResults" class="side-by-side hide">
+              <div class="simplify-box">
+                <h3>Original Text</h3>
+                <div id="originalTextDisplay"></div>
+              </div>
+              
+              <div class="simplify-box">
+                <h3>Simplified Version</h3>
+                <div id="simplifiedTextDisplay"></div>
+              </div>
             </div>
+            
+            <div id="summaryBox" class="summary-box hide">
+              <h3>Smart Summary</h3>
+              <div id="summaryDisplay"></div>
+            </div>
+            
+
+          </div>
+          <div id="legalTermsSection" class="glass hide">
+
+            <h3>Legal Terms Explained</h3>
+
+            <div id="termsDisplay" class="legal-terms-box"></div>
+
           </div>
       </section>
+
+     <!-- User Reports Section -->
+     <section class="reports-section glass section-reveal delay-3">
+      <div class="section-header">
+        <h2>My Analyzed Reports</h2>
+        <p>All documents you have generated so far.</p>
+      </div>
+
+      <div id="myReportsList" class="reports-list">
+        <p class="empty-state-text">No reports yet.</p>
+      </div>
+     </section>
+     <!-- Admin Dashboard -->
+    <section id="adminPanel" class="reports-section glass hide section-reveal delay-4">
+
+      <div class="section-header">
+        <h2>Admin Dashboard</h2>
+        <p>Platform statistics and activity overview.</p>
+      </div>
+
+      <div id="adminStats"></div>
+
+      <div class="reports-section glass">
+
+      <h3>Registered Users</h3>
+
+      <table class="admin-table">
+      <thead>
+      <tr>
+      <th>ID</th>
+      <th>Name</th>
+      <th>Email</th>
+      </tr>
+      </thead>
+
+      <tbody id="adminUsers"></tbody>
+
+      </table>
+
+      </div>
+
+
+      <div class="reports-section glass">
+
+      <h3>Generated Reports</h3>
+
+      <table class="admin-table">
+<thead>
+<tr>
+<th>ID</th>
+<th>Filename</th>
+<th>Created</th>
+</tr>
+</thead>
+
+<tbody id="adminReports"></tbody>
+
+      </table>
+
+      </div>
+
+    </section>
 
     </div>
   </main>

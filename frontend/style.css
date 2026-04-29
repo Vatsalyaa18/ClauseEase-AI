@@ -364,11 +364,12 @@ textarea:focus {
 }
 
 .dashboard-grid {
-  display: grid;
+  display: flex;
   grid-template-columns: 1fr 1.2fr;
-  gap: 30px;
+  gap: 24px;
   height: 100%;
   animation: fadeIn 0.8s ease-out;
+  flex-direction: column;
 }
 
 @keyframes fadeIn {
@@ -449,6 +450,9 @@ textarea#docText {
   cursor: pointer;
   transition: 0.3s;
   position: relative;
+  text-align:center;
+  min-height:220px;
+  position:relative;
 }
 
 .drop-zone:hover,
@@ -458,9 +462,10 @@ textarea#docText {
   box-shadow: inset 0 0 20px var(--primary-glow);
 }
 
-.drop-icon {
-  font-size: 40px;
-  margin-bottom: 15px;
+.drop-icon{
+  font-size:48px;
+  margin-bottom:12px;
+  display:block;
 }
 
 .drop-sub {
@@ -1066,4 +1071,344 @@ textarea#docText {
   .main-content {
     padding: 20px;
   }
+}
+
+/* ================= SIMPLIFY SECTION ================= */
+
+.side-by-side {
+  display: flex;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.simplify-box {
+  flex: 1;
+  background: var(--card-bg);
+  padding: 15px;
+  border-radius: 12px;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.summary-box {
+  margin-top: 20px;
+  background: var(--card-bg);
+  padding: 15px;
+  border-radius: 12px;
+}
+/* Report Cards */
+
+.report-item {
+    margin-bottom: 12px;
+}
+
+.report-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 12px 16px;
+    transition: 0.2s;
+}
+
+.report-card:hover {
+    background: rgba(255,255,255,0.07);
+}
+
+.report-file {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.file-icon {
+    font-size: 22px;
+}
+
+.file-info strong {
+    display: block;
+    font-size: 14px;
+}
+
+.file-info small {
+    opacity: 0.6;
+    font-size: 12px;
+}
+.download-btn {
+    background: linear-gradient(135deg,#6C63FF,#8A7BFF);
+    border: none;
+    color: white;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.download-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(108,99,255,0.4);
+}
+#simplifyLevel {
+    width: 160px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: none;
+    background: rgba(255,255,255,0.08);
+    color: white;
+    font-size: 14px;
+    outline: none;
+}
+
+#simplifyLevel:hover {
+    background: rgba(255,255,255,0.12);
+}
+
+#simplifyLevel option {
+    color: black;
+}
+.simplify-levels{
+    display:flex;
+    gap:10px;
+    margin-top:8px;
+}
+
+.level-btn{
+    padding:6px 14px;
+    border-radius:6px;
+    border:none;
+    background:rgba(255,255,255,0.08);
+    color:white;
+    cursor:pointer;
+    transition:0.2s;
+}
+
+.level-btn:hover{
+    background:rgba(255,255,255,0.15);
+}
+
+.level-btn.active{
+    background:linear-gradient(135deg,#6C63FF,#8A7BFF);
+}
+.simplify-levels{
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+}
+
+.level-btn{
+  padding:6px 14px;
+  border-radius:6px;
+  border:none;
+  background:rgba(255,255,255,0.08);
+  color:white;
+  cursor:pointer;
+  transition:0.2s;
+}
+
+.level-btn:hover{
+  background:rgba(255,255,255,0.15);
+}
+
+.level-btn.active{
+  background:linear-gradient(135deg,#6C63FF,#8A7BFF);
+}
+.simplify-level-section{
+  margin-top:8px;
+}
+
+.simplify-title{
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.65);
+  margin-bottom:6px;
+}
+.preprocessing-results{
+    margin-top:16px;
+}
+
+.small-text-card{
+    max-height:260px;
+    overflow-y:auto;
+    padding:14px;
+    line-height:1.6;
+}
+.preprocessing-results{
+    margin-top:16px;
+}
+
+.small-text-card{
+    max-height:260px;
+    overflow-y:auto;
+    padding:14px;
+    line-height:1.6;
+}
+.text-output-card{
+    min-height:420px;
+}
+.small-text-card::-webkit-scrollbar,
+.token-list::-webkit-scrollbar{
+    width:6px;
+}
+
+.small-text-card::-webkit-scrollbar-thumb,
+.token-list::-webkit-scrollbar-thumb{
+    background:rgba(255,255,255,0.25);
+    border-radius:10px;
+}
+#selectedFile{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-weight:500;
+  color:white;
+}
+
+#selectedFile .file-icon{
+  font-size:20px;
+}
+#selectedFile{
+  background:rgba(255,255,255,0.05);
+  padding:10px 14px;
+  border-radius:8px;
+}
+#selectedFile{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px;
+}
+
+#selectedFileName{
+  font-weight:500;
+}
+
+#replaceFileBtn{
+  padding:6px 12px;
+  border-radius:6px;
+  border:none;
+  background:linear-gradient(135deg,#6C63FF,#8B8AFF);
+  color:white;
+  cursor:pointer;
+}
+.drop-zone.dragover{
+  border-color: var(--primary);
+  background: rgba(99,102,241,0.08);
+}
+.analysis-section{
+  grid-column: span 2;
+}
+.input-section,
+.analysis-section,
+.reports-section{
+  width:100%;
+}
+.admin-table {
+width: 100%;
+border-collapse: collapse;
+margin-top: 15px;
+margin-bottom: 25px;
+font-size: 14px;
+background: rgba(255,255,255,0.02);
+border-radius: 8px;
+overflow: hidden;
+}
+
+.admin-table th {
+padding: 10px 14px;
+text-align: left;
+font-weight: 600;
+border-bottom: 1px solid rgba(255,255,255,0.1);
+background: rgba(255,255,255,0.05);
+}
+
+.admin-table td {
+padding: 10px 14px;
+border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.admin-table tr:hover {
+background: rgba(255,255,255,0.04);
+}
+
+.admin-table tbody tr:last-child td {
+border-bottom: none;
+}
+.admin-table th:first-child,
+.admin-table td:first-child {
+width: 60px;
+text-align: center;
+}
+.reports-section {
+padding: 18px 22px;
+}
+.reports-section h3{
+margin-bottom:8px;
+}
+/* Legal Terms Section */
+
+#legalTermsSection{
+margin-top:20px;
+}
+
+.legal-terms-box{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+gap:18px;
+margin-top:14px;
+}
+
+.legal-term-card{
+background:rgba(255,255,255,0.05);
+padding:16px 18px;
+border-radius:12px;
+border:1px solid rgba(255,255,255,0.08);
+min-height:70px;
+
+display:flex;
+flex-direction:column;
+justify-content:center;
+
+transition:all 0.2s ease;
+}
+
+.legal-term-card:hover{
+background:rgba(255,255,255,0.08);
+transform:translateY(-2px);
+}
+
+.legal-term-card strong{
+color:var(--primary);
+font-size:15px;
+margin-bottom:6px;
+}
+
+.legal-term-card p{
+font-size:14px;
+color:var(--text-secondary);
+line-height:1.4;
+margin:0;
+}
+.logo{
+text-decoration:none;
+color:inherit;
+display:flex;
+align-items:center;
+gap:10px;
+cursor:pointer;
+}
+:root[data-theme="light"]{
+--bg:#f4f6fb;
+--text:#1a1a1a;
+--primary:#4f6df5;
+--text-secondary:#5a5f73;
+}
+:root[data-theme="dark"]{
+--bg:#0b1020;
+--text:#ffffff;
+--primary:#6c8cff;
 }

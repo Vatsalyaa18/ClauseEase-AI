@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClauseEase Admin</title>
+<link rel="stylesheet" href="../style.css">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body data-theme="dark">
+
+<div class="bg-blobs">
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+<div class="blob blob-3"></div>
+</div>
+
+<header class="app-header">
+<div class="header-container">
+
+<div class="logo">
+<span class="logo-icon">📜</span>
+<div class="logo-text">
+<span class="brand-name">ClauseEase</span>
+<span class="brand-tagline">Admin Dashboard</span>
+</div>
+</div>
+
+</div>
+<div class="user-profile">
+<button onclick="window.location.href='../index.html'" class="btn-outline">
+Back to App
+</button>
+</div>
+</header>
+
+<main class="main-content">
+
+<section class="glass section-reveal">
+
+<h2>Admin Dashboard</h2>
+
+<div class="metrics-row">
+
+<div class="metric-card">
+<span class="metric-label">Total Users</span>
+<span id="totalUsers" class="metric-value">--</span>
+</div>
+
+<div class="metric-card">
+<span class="metric-label">Total Reports</span>
+<span id="totalReports" class="metric-value">--</span>
+</div>
+
+</div>
+
+<br>
+
+<div class="reports-section glass">
+
+<h3>Administrators</h3>
+
+<table class="admin-table">
+<thead>
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Email</th>
+</tr>
+</thead>
+
+<tbody id="adminList"></tbody>
+</table>
+
+</div>
+
+
+<div class="reports-section glass">
+
+<h3>Registered Users</h3>
+
+<table class="admin-table">
+<thead>
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Email</th>
+</tr>
+</thead>
+
+<tbody id="userList"></tbody>
+</table>
+
+</div>
+
+
+<div class="reports-section glass">
+
+<h3>Generated Reports</h3>
+
+<table class="admin-table">
+<thead>
+<tr>
+<th>ID</th>
+<th>Filename</th>
+<th>Created</th>
+</tr>
+</thead>
+
+<tbody id="adminReports"></tbody>
+
+</table>
+
+</div>
+
+</section>
+
+</main>
+
+<script src="admin.js"></script>
+
+</body>
+</html>
